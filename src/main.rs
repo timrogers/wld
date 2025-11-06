@@ -55,6 +55,35 @@ fn main() {
     }
 }
 
+fn set_device_power(device: Option<&str>, power_state: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+    
+    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
+    let mut wled = Wled::try_from_url(&url)?;
+    
+    // Get current state
+    wled.get_state_from_wled()?;
+    
+    // Update state
+    if let Some(state) = &mut wled.state {
+        state.on = Some(power_state);
+    } else {
+        wled.state = Some(State {
+            on: Some(power_state),
+            ..Default::default()
+        });
+    }
+    
+    // Send updated state
+    wled.flush_state()?;
+    
+    let action = if power_state { "on" } else { "off" };
+    println!("Turned {} device at {}", action, ip);
+    
+    Ok(())
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
@@ -100,54 +129,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             println!("Set '{}' as the default device", name);
         }
         Commands::On { device } => {
-            let config = Config::load()?;
-            let ip = config.get_device_ip(device.as_deref())?;
-
-            let url = reqwest::Url::parse(&format!("http://{}", ip))?;
-            let mut wled = Wled::try_from_url(&url)?;
-
-            // Get current state
-            wled.get_state_from_wled()?;
-
-            // Update state to turn on
-            if let Some(state) = &mut wled.state {
-                state.on = Some(true);
-            } else {
-                wled.state = Some(State {
-                    on: Some(true),
-                    ..Default::default()
-                });
-            }
-
-            // Send updated state
-            wled.flush_state()?;
-
-            println!("Turned on device at {}", ip);
+            set_device_power(device.as_deref(), true)?;
         }
         Commands::Off { device } => {
-            let config = Config::load()?;
-            let ip = config.get_device_ip(device.as_deref())?;
-
-            let url = reqwest::Url::parse(&format!("http://{}", ip))?;
-            let mut wled = Wled::try_from_url(&url)?;
-
-            // Get current state
-            wled.get_state_from_wled()?;
-
-            // Update state to turn off
-            if let Some(state) = &mut wled.state {
-                state.on = Some(false);
-            } else {
-                wled.state = Some(State {
-                    on: Some(false),
-                    ..Default::default()
-                });
-            }
-
-            // Send updated state
-            wled.flush_state()?;
-
-            println!("Turned off device at {}", ip);
+            set_device_power(device.as_deref(), false)?;
         }
     }
 
