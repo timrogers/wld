@@ -59,12 +59,12 @@ jobs:
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
         run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APPLE_SIGNING_KEY_P12 != ''
       - name: Write App Store Connect API key to a file (macOS only)
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Sign macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -73,7 +73,7 @@ jobs:
           p12_password: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
           sign: true
           sign_args: "--code-signature-flags=runtime"
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APPLE_SIGNING_KEY_P12 != ''
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -81,7 +81,7 @@ jobs:
           name: wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
       - name: Archive macOS binary for notarisation (macOS only)
         run: zip wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}.zip wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Notarise signed macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -89,7 +89,7 @@ jobs:
           sign: false
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_api_key.json
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APP_STORE_CONNECT_API_KEY != ''
   create_and_sign_macos_universal_binary:
     name: Create and sign macOS universal binary (macOS only)
     permissions:
@@ -114,10 +114,12 @@ jobs:
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
         run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
+        if: secrets.APPLE_SIGNING_KEY_P12 != ''
       - name: Write App Store Connect API key to a file (macOS only)
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
+        if: secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Sign macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -126,6 +128,7 @@ jobs:
           p12_password: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
           sign: true
           sign_args: "--code-signature-flags=runtime"
+        if: secrets.APPLE_SIGNING_KEY_P12 != ''
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -133,6 +136,7 @@ jobs:
           name: wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
       - name: Archive macOS binary for notarisation (macOS only)
         run: zip wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal.zip wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+        if: secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Notarise signed macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -140,6 +144,7 @@ jobs:
           sign: false
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_api_key.json
+        if: secrets.APP_STORE_CONNECT_API_KEY != ''
 
   cargo_publish_dry_run:
     name: Publish with Cargo in dry-run mode
