@@ -55,16 +55,19 @@ fn main() {
     }
 }
 
-fn set_device_power(device: Option<&str>, power_state: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn set_device_power(
+    device: Option<&str>,
+    power_state: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
-    
+
     let url = reqwest::Url::parse(&format!("http://{}", ip))?;
     let mut wled = Wled::try_from_url(&url)?;
-    
+
     // Get current state
     wled.get_state_from_wled()?;
-    
+
     // Update state
     if let Some(state) = &mut wled.state {
         state.on = Some(power_state);
@@ -74,13 +77,13 @@ fn set_device_power(device: Option<&str>, power_state: bool) -> Result<(), Box<d
             ..Default::default()
         });
     }
-    
+
     // Send updated state
     wled.flush_state()?;
-    
+
     let action = if power_state { "on" } else { "off" };
     println!("Turned {} device at {}", action, ip);
-    
+
     Ok(())
 }
 

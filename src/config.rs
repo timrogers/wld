@@ -107,3 +107,200 @@ impl Config {
         Err("No device specified and no default device set".to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    // Helper function to create a temporary config file path
+    fn temp_config_path() -> PathBuf {
+        let temp_dir = std::env::temp_dir();
+        let unique_name = format!("wld_test_config_{}.toml", std::process::id());
+        temp_dir.join(unique_name)
+    }
+
+    // Helper function to clean up temporary config file
+    fn cleanup_config(path: &PathBuf) {
+        if path.exists() {
+            let _ = fs::remove_file(path);
+        }
+    }
+
+    #[test]
+    fn test_new_config() {
+        let config = Config::new();
+        assert!(config.devices.is_empty());
+        assert!(config.default_device.is_none());
+    }
+
+    #[test]
+    fn test_add_device() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        assert_eq!(config.devices.len(), 1);
+        assert_eq!(
+            config.devices.get("living_room"),
+            Some(&"192.168.1.100".to_string())
+        );
+        assert_eq!(config.default_device, Some("living_room".to_string()));
+    }
+
+    #[test]
+    fn test_add_multiple_devices() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+        config.add_device("bedroom".to_string(), "192.168.1.101".to_string());
+
+        assert_eq!(config.devices.len(), 2);
+        // First device should remain default
+        assert_eq!(config.default_device, Some("living_room".to_string()));
+    }
+
+    #[test]
+    fn test_remove_device() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+        config.add_device("bedroom".to_string(), "192.168.1.101".to_string());
+
+        let result = config.remove_device("living_room");
+        assert!(result.is_ok());
+        assert_eq!(config.devices.len(), 1);
+        // bedroom should become the new default
+        assert_eq!(config.default_device, Some("bedroom".to_string()));
+    }
+
+    #[test]
+    fn test_remove_nonexistent_device() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        let result = config.remove_device("kitchen");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Device 'kitchen' not found");
+    }
+
+    #[test]
+    fn test_remove_last_device() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        let result = config.remove_device("living_room");
+        assert!(result.is_ok());
+        assert!(config.devices.is_empty());
+        assert!(config.default_device.is_none());
+    }
+
+    #[test]
+    fn test_set_default() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+        config.add_device("bedroom".to_string(), "192.168.1.101".to_string());
+
+        let result = config.set_default("bedroom");
+        assert!(result.is_ok());
+        assert_eq!(config.default_device, Some("bedroom".to_string()));
+    }
+
+    #[test]
+    fn test_set_default_nonexistent_device() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        let result = config.set_default("kitchen");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Device 'kitchen' not found");
+    }
+
+    #[test]
+    fn test_get_device_ip_by_name() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        let result = config.get_device_ip(Some("living_room"));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "192.168.1.100");
+    }
+
+    #[test]
+    fn test_get_device_ip_by_direct_ip() {
+        let config = Config::new();
+
+        let result = config.get_device_ip(Some("192.168.1.200"));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "192.168.1.200");
+    }
+
+    #[test]
+    fn test_get_device_ip_default() {
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+
+        let result = config.get_device_ip(None);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "192.168.1.100");
+    }
+
+    #[test]
+    fn test_get_device_ip_no_default() {
+        let config = Config::new();
+
+        let result = config.get_device_ip(None);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "No device specified and no default device set"
+        );
+    }
+
+    #[test]
+    fn test_save_and_load_config() {
+        let config_path = temp_config_path();
+        cleanup_config(&config_path);
+
+        // Create and save a config
+        let mut config = Config::new();
+        config.add_device("living_room".to_string(), "192.168.1.100".to_string());
+        config.add_device("bedroom".to_string(), "192.168.1.101".to_string());
+
+        let content = toml::to_string_pretty(&config).unwrap();
+        fs::write(&config_path, content).unwrap();
+
+        // Load the config
+        let loaded_content = fs::read_to_string(&config_path).unwrap();
+        let loaded_config: Config = toml::from_str(&loaded_content).unwrap();
+
+        assert_eq!(loaded_config.devices.len(), 2);
+        assert_eq!(
+            loaded_config.devices.get("living_room"),
+            Some(&"192.168.1.100".to_string())
+        );
+        assert_eq!(
+            loaded_config.devices.get("bedroom"),
+            Some(&"192.168.1.101".to_string())
+        );
+        assert_eq!(
+            loaded_config.default_device,
+            Some("living_room".to_string())
+        );
+
+        cleanup_config(&config_path);
+    }
+
+    #[test]
+    fn test_config_serialization() {
+        let mut config = Config::new();
+        config.add_device("test_device".to_string(), "192.168.1.50".to_string());
+
+        let serialized = toml::to_string_pretty(&config).unwrap();
+        assert!(serialized.contains("test_device"));
+        assert!(serialized.contains("192.168.1.50"));
+        assert!(serialized.contains("default_device"));
+
+        let deserialized: Config = toml::from_str(&serialized).unwrap();
+        assert_eq!(deserialized.devices.len(), 1);
+        assert_eq!(deserialized.default_device, Some("test_device".to_string()));
+    }
+}
