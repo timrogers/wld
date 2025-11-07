@@ -50,15 +50,14 @@ jobs:
         run: cargo build --release --target=${{ matrix.job.target }}
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
-        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
+        run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - name: Rename Windows binary to use structured filename
         run: |
           cp target/${{ matrix.job.target }}/release/wld.exe wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
         if: runner.os == 'Windows'
       - name: Rename Unix binary to use structured filename
         run: |
-          rm target/${{ matrix.job.target }}/release/wld.d
-          cp target/${{ matrix.job.target }}/release/wld* wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
+          cp target/${{ matrix.job.target }}/release/wld wld_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
         if: runner.os != 'Windows'
       - name: Write Apple signing key to a file (macOS only)
         env:
@@ -102,7 +101,7 @@ jobs:
     steps:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
-        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
+        run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - name: Download macOS amd64 binary
         uses: actions/download-artifact@v5
         with:
@@ -169,7 +168,7 @@ jobs:
     steps:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
-        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
+        run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - uses: actions/download-artifact@v5
         with:
           name: wld_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
@@ -207,8 +206,8 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
-      - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
-        run: rustup override set 1.89.0-${{ matrix.job.target }}
+      - name: Use Rust 1.89.0
+        run: rustup override set 1.89.0
       - uses: Swatinem/rust-cache@v2
       - name: Publish to Crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
