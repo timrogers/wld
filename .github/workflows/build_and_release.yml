@@ -144,7 +144,6 @@ jobs:
           sign: false
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_api_key.json
-        if: secrets.APP_STORE_CONNECT_API_KEY != ''
 
   cargo_publish_dry_run:
     name: Publish with Cargo in dry-run mode
