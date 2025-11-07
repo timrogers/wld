@@ -114,7 +114,6 @@ jobs:
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
         run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
-        if: secrets.APPLE_SIGNING_KEY_P12 != ''
       - name: Write App Store Connect API key to a file (macOS only)
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
