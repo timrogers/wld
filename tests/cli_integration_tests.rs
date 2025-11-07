@@ -230,3 +230,76 @@ fn test_multiple_operations_sequence() {
 
     cleanup_temp_home(&temp_home);
 }
+
+#[test]
+fn test_brightness_command_requires_value() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Try to run brightness without a value - should fail
+    let output = run_command_with_temp_home(&["brightness"], &temp_home);
+    assert!(!output.status.success());
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_brightness_command_accepts_valid_range() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test minimum value
+    let output_min = run_command_with_temp_home(&["brightness", "0"], &temp_home);
+    // Note: This will fail to connect to a real device, but we're testing command parsing
+    // The error would be a connection error, not a parsing error
+    let stderr_min = String::from_utf8_lossy(&output_min.stderr);
+    // Should not contain argument parsing errors
+    assert!(!stderr_min.contains("invalid value"));
+    assert!(!stderr_min.contains("error: invalid"));
+
+    // Test maximum value
+    let output_max = run_command_with_temp_home(&["brightness", "255"], &temp_home);
+    let stderr_max = String::from_utf8_lossy(&output_max.stderr);
+    assert!(!stderr_max.contains("invalid value"));
+    assert!(!stderr_max.contains("error: invalid"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_brightness_command_rejects_out_of_range() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test value over 255
+    let output = run_command_with_temp_home(&["brightness", "256"], &temp_home);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // u8 max is 255, so 256 should be rejected
+    assert!(stderr.contains("256") || stderr.contains("invalid"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_brightness_command_with_specific_device() {
+    let temp_home = setup_temp_home();
+
+    // Add two devices
+    run_command_with_temp_home(&["add", "device1", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "device2", "192.168.1.101"], &temp_home);
+
+    // Try to set brightness on specific device
+    let output = run_command_with_temp_home(&["brightness", "128", "-d", "device2"], &temp_home);
+    // Should parse successfully (will fail on network, but that's expected)
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("error: invalid"));
+
+    cleanup_temp_home(&temp_home);
+}
