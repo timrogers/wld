@@ -63,11 +63,20 @@ impl WledMcpServer {
         &self,
         Parameters(params): Parameters<WledDeviceParams>,
     ) -> Result<CallToolResult, McpError> {
-        match set_device_power(params.device.as_deref(), true) {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+        let device = params.device.clone();
+        match tokio::task::spawn_blocking(move || {
+            set_device_power(device.as_deref(), true).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(
                 "Device turned on successfully",
             )])),
-            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {}",
+                e
+            ))])),
         }
     }
 
@@ -78,11 +87,20 @@ impl WledMcpServer {
         &self,
         Parameters(params): Parameters<WledDeviceParams>,
     ) -> Result<CallToolResult, McpError> {
-        match set_device_power(params.device.as_deref(), false) {
-            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+        let device = params.device.clone();
+        match tokio::task::spawn_blocking(move || {
+            set_device_power(device.as_deref(), false).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(
                 "Device turned off successfully",
             )])),
-            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {}",
+                e
+            ))])),
         }
     }
 }
