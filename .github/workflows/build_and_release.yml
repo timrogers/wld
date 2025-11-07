@@ -136,7 +136,6 @@ jobs:
           name: wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
       - name: Archive macOS binary for notarisation (macOS only)
         run: zip wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal.zip wld_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
-        if: secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Notarise signed macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
