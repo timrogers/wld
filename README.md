@@ -75,3 +75,38 @@ The `wld` CLI provides the following commands:
   wld off -d desk-light       # Turn off a specific saved device
   wld off -d 192.168.1.100    # Turn off a device by IP address
   ```
+
+### From a Model Context Protocol (MCP) client
+
+Running the `wld mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your WLED devices from AI applications and agents.
+
+#### Usage with Claude Desktop
+
+To use the MCP server with Claude Desktop:
+
+1. From the Claude app, open the "Developer" menu, then click "Open App Config File...".
+1. Add the MCP server to the `mcpServers` key in your config:
+
+```json
+{
+  "mcpServers": {
+    "wld": {
+      "command": "wld",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+3. Back in the Claude app, open the "Developer" menu, then click "Reload MCP Configuration".
+4. To check that the MCP server is running, start a chat, then click the "Search and tools" button under the chat input, and check for a "wld" item in the menu.
+
+#### Available Tools
+
+The following tools are available:
+
+- `wled_devices`: List saved WLED devices from configuration, including their names, IP addresses, and which one is set as default
+- `wled_on`: Turn WLED device on. By default, the default device is used, but you can optionally specify a device name or IP address.
+- `wled_off`: Turn WLED device off. By default, the default device is used, but you can optionally specify a device name or IP address.

@@ -1,5 +1,8 @@
 mod config;
 
+#[cfg(feature = "mcp")]
+mod mcp;
+
 use clap::{Parser, Subcommand};
 use config::Config;
 use wled_json_api_library::structures::state::State;
@@ -46,6 +49,9 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Start a MCP (Model Context Protocol) server for controlling WLED devices
+    #[cfg(feature = "mcp")]
+    Mcp,
 }
 
 fn main() {
@@ -55,7 +61,7 @@ fn main() {
     }
 }
 
-fn set_device_power(
+pub fn set_device_power(
     device: Option<&str>,
     power_state: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -136,6 +142,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Off { device } => {
             set_device_power(device.as_deref(), false)?;
+        }
+        #[cfg(feature = "mcp")]
+        Commands::Mcp => {
+            mcp::handle_mcp_command()?;
         }
     }
 
