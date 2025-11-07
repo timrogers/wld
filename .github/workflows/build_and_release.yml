@@ -119,7 +119,6 @@ jobs:
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
-        if: secrets.APP_STORE_CONNECT_API_KEY != ''
       - name: Sign macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
