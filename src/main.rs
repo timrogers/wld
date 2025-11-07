@@ -18,8 +18,10 @@ enum Commands {
     /// Add a new WLED device
     Add {
         /// Name for the device
+        #[arg(short, long)]
         name: String,
         /// IP address of the device
+        #[arg(short, long)]
         ip: String,
     },
     /// Delete a saved device

@@ -57,7 +57,7 @@ fn run_command_with_temp_home(args: &[&str], temp_home: &PathBuf) -> std::proces
 fn test_add_device() {
     let temp_home = setup_temp_home();
 
-    let output = run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+    let output = run_command_with_temp_home(&["add", "--name", "test_device", "--ip", "192.168.1.100"], &temp_home);
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -72,11 +72,11 @@ fn test_add_and_list_devices() {
     let temp_home = setup_temp_home();
 
     // Add first device
-    let output1 = run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
+    let output1 = run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
     assert!(output1.status.success());
 
     // Add second device
-    let output2 = run_command_with_temp_home(&["add", "bedroom", "192.168.1.101"], &temp_home);
+    let output2 = run_command_with_temp_home(&["add", "--name", "bedroom", "--ip", "192.168.1.101"], &temp_home);
     assert!(output2.status.success());
 
     // List devices
@@ -109,8 +109,8 @@ fn test_set_default_device() {
     let temp_home = setup_temp_home();
 
     // Add two devices
-    run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
-    run_command_with_temp_home(&["add", "bedroom", "192.168.1.101"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "bedroom", "--ip", "192.168.1.101"], &temp_home);
 
     // Set bedroom as default
     let output = run_command_with_temp_home(&["set-default", "bedroom"], &temp_home);
@@ -132,7 +132,7 @@ fn test_set_default_nonexistent_device() {
     let temp_home = setup_temp_home();
 
     // Add one device
-    run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
 
     // Try to set nonexistent device as default
     let output = run_command_with_temp_home(&["set-default", "kitchen"], &temp_home);
@@ -149,8 +149,8 @@ fn test_delete_device() {
     let temp_home = setup_temp_home();
 
     // Add two devices
-    run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
-    run_command_with_temp_home(&["add", "bedroom", "192.168.1.101"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "bedroom", "--ip", "192.168.1.101"], &temp_home);
 
     // Delete living_room
     let output = run_command_with_temp_home(&["delete", "living_room"], &temp_home);
@@ -173,7 +173,7 @@ fn test_delete_nonexistent_device() {
     let temp_home = setup_temp_home();
 
     // Add one device
-    run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
 
     // Try to delete nonexistent device
     let output = run_command_with_temp_home(&["delete", "kitchen"], &temp_home);
@@ -190,8 +190,8 @@ fn test_delete_default_device_reassigns() {
     let temp_home = setup_temp_home();
 
     // Add two devices
-    run_command_with_temp_home(&["add", "living_room", "192.168.1.100"], &temp_home);
-    run_command_with_temp_home(&["add", "bedroom", "192.168.1.101"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "living_room", "--ip", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "bedroom", "--ip", "192.168.1.101"], &temp_home);
 
     // living_room is default, delete it
     let output = run_command_with_temp_home(&["delete", "living_room"], &temp_home);
@@ -210,9 +210,9 @@ fn test_multiple_operations_sequence() {
     let temp_home = setup_temp_home();
 
     // Add three devices
-    run_command_with_temp_home(&["add", "device1", "192.168.1.10"], &temp_home);
-    run_command_with_temp_home(&["add", "device2", "192.168.1.20"], &temp_home);
-    run_command_with_temp_home(&["add", "device3", "192.168.1.30"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "device1", "--ip", "192.168.1.10"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "device2", "--ip", "192.168.1.20"], &temp_home);
+    run_command_with_temp_home(&["add", "--name", "device3", "--ip", "192.168.1.30"], &temp_home);
 
     // Set device2 as default
     run_command_with_temp_home(&["set-default", "device2"], &temp_home);
