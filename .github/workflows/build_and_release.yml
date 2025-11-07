@@ -38,12 +38,6 @@ jobs:
             }
     runs-on: ${{ matrix.job.runs_on }}
     steps:
-      - name: Install rustup (self-hosted runners only)
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        if: matrix.job.runs_on == 'self-hosted'
-      - name: Add $HOME/.cargo/bin to PATH (self-hosted runners only)
-        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        if: matrix.job.runs_on == 'self-hosted'
       - uses: actions/checkout@v4
       - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.89.0-${{ matrix.job.target }}
