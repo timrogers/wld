@@ -10,6 +10,9 @@ use crate::config::Config;
 use crate::set_device_power;
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct EmptyParams {}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct WledDeviceParams {
     /// Device name or IP address (optional - if not specified, the default device is used)
     pub device: Option<String>,
@@ -29,7 +32,10 @@ impl WledMcpServer {
     }
 
     #[tool(description = "List saved WLED devices from configuration")]
-    async fn wled_devices(&self) -> Result<CallToolResult, McpError> {
+    async fn wled_devices(
+        &self,
+        Parameters(_params): Parameters<EmptyParams>,
+    ) -> Result<CallToolResult, McpError> {
         match Config::load() {
             Ok(config) => {
                 if config.devices.is_empty() {
