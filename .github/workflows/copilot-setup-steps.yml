@@ -26,3 +26,6 @@ jobs:
       
       - name: Install dependencies
         run: cargo fetch
+      
+      - name: Build project
+        run: cargo build
