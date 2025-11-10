@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -54,7 +54,7 @@ fn add_device_to_config(temp_home: &PathBuf, name: &str, ip: &str) {
 }
 
 // Helper to send MCP requests via a bash script with timeout
-fn send_mcp_request_via_script(temp_home: &PathBuf, requests: Vec<&str>) -> Result<String, String> {
+fn send_mcp_request_via_script(temp_home: &Path, requests: Vec<&str>) -> Result<String, String> {
     let binary_path = get_binary_path();
 
     // Create a temporary script to run the MCP server with input
