@@ -468,3 +468,87 @@ fn test_wled_device_params_schema_structure() {
         );
     }
 }
+
+#[test]
+fn test_mcp_wled_status_no_devices() {
+    let temp_home = setup_temp_home();
+
+    let init_request = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}"#;
+    let init_notification = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let call_request = r#"{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"wled_status","arguments":{}}}"#;
+
+    let output = send_mcp_request_via_script(
+        &temp_home,
+        vec![init_request, init_notification, call_request],
+    )
+    .expect("Failed to send request");
+
+    cleanup_temp_home(&temp_home);
+
+    assert!(
+        output.contains("No devices saved"),
+        "Response should indicate no devices saved"
+    );
+}
+
+#[test]
+fn test_mcp_wled_status_with_devices() {
+    let temp_home = setup_temp_home();
+
+    // Add test devices
+    add_device_to_config(&temp_home, "living_room", "192.168.1.100");
+    add_device_to_config(&temp_home, "bedroom", "192.168.1.101");
+
+    let init_request = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}"#;
+    let init_notification = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let call_request = r#"{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"wled_status","arguments":{}}}"#;
+
+    let output = send_mcp_request_via_script(
+        &temp_home,
+        vec![init_request, init_notification, call_request],
+    )
+    .expect("Failed to send request");
+
+    cleanup_temp_home(&temp_home);
+
+    assert!(
+        output.contains("Checking status of all devices"),
+        "Response should contain status check message"
+    );
+    assert!(
+        output.contains("living_room") && output.contains("192.168.1.100"),
+        "Response should contain living_room device"
+    );
+    assert!(
+        output.contains("bedroom") && output.contains("192.168.1.101"),
+        "Response should contain bedroom device"
+    );
+    // Since devices don't actually exist, they should be unreachable
+    assert!(
+        output.contains("UNREACHABLE"),
+        "Response should indicate devices are unreachable"
+    );
+}
+
+#[test]
+fn test_mcp_tools_list_includes_status() {
+    let temp_home = setup_temp_home();
+
+    let init_request = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}"#;
+    let init_notification = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let tools_request = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#;
+
+    let output = send_mcp_request_via_script(
+        &temp_home,
+        vec![init_request, init_notification, tools_request],
+    )
+    .expect("Failed to send request");
+
+    cleanup_temp_home(&temp_home);
+
+    assert!(
+        output.contains("wled_status"),
+        "Response should list wled_status tool"
+    );
+}
+

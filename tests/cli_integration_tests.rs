@@ -303,3 +303,62 @@ fn test_brightness_command_with_specific_device() {
 
     cleanup_temp_home(&temp_home);
 }
+
+#[test]
+fn test_status_command_no_devices() {
+    let temp_home = setup_temp_home();
+
+    // Run status with no devices
+    let output = run_command_with_temp_home(&["status"], &temp_home);
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("No devices saved"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_status_command_with_devices() {
+    let temp_home = setup_temp_home();
+
+    // Add devices
+    run_command_with_temp_home(&["add", "device1", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "device2", "192.168.1.101"], &temp_home);
+
+    // Run status command
+    let output = run_command_with_temp_home(&["status"], &temp_home);
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Checking status of all devices"));
+    assert!(stdout.contains("device1"));
+    assert!(stdout.contains("192.168.1.100"));
+    assert!(stdout.contains("device2"));
+    assert!(stdout.contains("192.168.1.101"));
+    // Since devices are unreachable (don't exist), should have UNREACHABLE status
+    assert!(stdout.contains("UNREACHABLE"));
+    // Should exit with error code 1 when devices are unreachable
+    assert!(!output.status.success());
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_status_command_shows_default_marker() {
+    let temp_home = setup_temp_home();
+
+    // Add two devices
+    run_command_with_temp_home(&["add", "device1", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "device2", "192.168.1.101"], &temp_home);
+
+    // Set device2 as default
+    run_command_with_temp_home(&["set-default", "device2"], &temp_home);
+
+    // Run status command
+    let output = run_command_with_temp_home(&["status"], &temp_home);
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("device2 (192.168.1.101) (default)"));
+
+    cleanup_temp_home(&temp_home);
+}
