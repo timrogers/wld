@@ -60,6 +60,12 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Get device status
+    Status {
+        /// Device name or IP (uses default if not specified)
+        #[arg(short, long)]
+        device: Option<String>,
+    },
 }
 
 fn main() {
@@ -132,6 +138,64 @@ pub fn set_device_power(
     Ok(())
 }
 
+pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
+    let mut wled = Wled::try_from_url(&url)?;
+
+    // Get current state
+    wled.get_state_from_wled()?;
+
+    // Display device identifier
+    let device_name = device.unwrap_or(&ip);
+    println!("Device: {device_name} ({ip})");
+
+    // Display state information
+    if let Some(state) = &wled.state {
+        // Power state
+        let power_status = if state.on.unwrap_or(false) {
+            "On"
+        } else {
+            "Off"
+        };
+        println!("Power: {power_status}");
+
+        // Brightness
+        if let Some(bri) = state.bri {
+            let percentage = (bri as f32 / 255.0 * 100.0).round() as u8;
+            println!("Brightness: {bri}/255 ({percentage}%)");
+        }
+
+        // Segment information (color, effects)
+        if let Some(segments) = &state.seg {
+            if let Some(first_seg) = segments.first() {
+                // Primary color
+                if let Some(colors) = &first_seg.col {
+                    if let Some(primary_color) = colors.first() {
+                        if primary_color.len() >= 3 {
+                            println!(
+                                "Primary Color: RGB({}, {}, {})",
+                                primary_color[0], primary_color[1], primary_color[2]
+                            );
+                        }
+                    }
+                }
+
+                // Effect
+                if let Some(effect_id) = first_seg.fx {
+                    println!("Effect ID: {effect_id}");
+                }
+            }
+        }
+    } else {
+        println!("No state information available");
+    }
+
+    Ok(())
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
@@ -188,6 +252,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Brightness { value, device } => {
             set_device_brightness(device.as_deref(), value)?;
+        }
+        Commands::Status { device } => {
+            get_device_status(device.as_deref())?;
         }
     }
 
