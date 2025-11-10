@@ -60,6 +60,12 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Get device status
+    Status {
+        /// Device name or IP (uses default if not specified)
+        #[arg(short, long)]
+        device: Option<String>,
+    },
 }
 
 fn main() {
@@ -132,6 +138,32 @@ pub fn set_device_power(
     Ok(())
 }
 
+pub fn get_device_status_string(device: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
+    let mut wled = Wled::try_from_url(&url)?;
+
+    // Get current state
+    wled.get_state_from_wled()?;
+
+    // Build status string
+    if let Some(state) = &wled.state {
+        let power = if state.on.unwrap_or(false) { "On" } else { "Off" };
+        let brightness = state.bri.unwrap_or(0);
+        Ok(format!("Device status for {ip}:\n  Power: {power}\n  Brightness: {brightness}"))
+    } else {
+        Ok(format!("Could not retrieve status for device at {ip}"))
+    }
+}
+
+pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let status = get_device_status_string(device)?;
+    println!("{status}");
+    Ok(())
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
@@ -188,6 +220,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Brightness { value, device } => {
             set_device_brightness(device.as_deref(), value)?;
+        }
+        Commands::Status { device } => {
+            get_device_status(device.as_deref())?;
         }
     }
 
