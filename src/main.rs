@@ -1,5 +1,8 @@
 mod config;
 
+#[cfg(feature = "mcp")]
+mod mcp;
+
 use clap::{Parser, Subcommand};
 use config::Config;
 use wled_json_api_library::structures::state::State;
@@ -46,6 +49,9 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Start a MCP (Model Context Protocol) server for controlling WLED devices
+    #[cfg(feature = "mcp")]
+    Mcp,
     /// Set device brightness (0-255)
     Brightness {
         /// Brightness level (0-255)
@@ -58,19 +64,50 @@ enum Commands {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }
 
-fn set_device_power(
+pub fn set_device_brightness(
+    device: Option<&str>,
+    brightness: u8,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
+    let mut wled = Wled::try_from_url(&url)?;
+
+    // Get current state
+    wled.get_state_from_wled()?;
+
+    // Update state
+    if let Some(state) = &mut wled.state {
+        state.bri = Some(brightness);
+    } else {
+        wled.state = Some(State {
+            bri: Some(brightness),
+            ..Default::default()
+        });
+    }
+
+    // Send updated state
+    wled.flush_state()?;
+
+    println!("Set brightness to {brightness} for device at {ip}");
+
+    Ok(())
+}
+
+pub fn set_device_power(
     device: Option<&str>,
     power_state: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
 
-    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
     let mut wled = Wled::try_from_url(&url)?;
 
     // Get current state
@@ -90,38 +127,7 @@ fn set_device_power(
     wled.flush_state()?;
 
     let action = if power_state { "on" } else { "off" };
-    println!("Turned {} device at {}", action, ip);
-
-    Ok(())
-}
-
-fn set_device_brightness(
-    device: Option<&str>,
-    brightness: u8,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let config = Config::load()?;
-    let ip = config.get_device_ip(device)?;
-
-    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
-    let mut wled = Wled::try_from_url(&url)?;
-
-    // Get current state
-    wled.get_state_from_wled()?;
-
-    // Update state
-    if let Some(state) = &mut wled.state {
-        state.bri = Some(brightness);
-    } else {
-        wled.state = Some(State {
-            bri: Some(brightness),
-            ..Default::default()
-        });
-    }
-
-    // Send updated state
-    wled.flush_state()?;
-
-    println!("Set brightness to {} for device at {}", brightness, ip);
+    println!("Turned {action} device at {ip}");
 
     Ok(())
 }
@@ -134,17 +140,17 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let mut config = Config::load()?;
             config.add_device(name.clone(), ip.clone());
             config.save()?;
-            println!("Added device '{}' with IP {}", name, ip);
+            println!("Added device '{name}' with IP {ip}");
 
             if config.devices.len() == 1 {
-                println!("Set '{}' as the default device", name);
+                println!("Set '{name}' as the default device");
             }
         }
         Commands::Delete { name } => {
             let mut config = Config::load()?;
             config.remove_device(&name)?;
             config.save()?;
-            println!("Deleted device '{}'", name);
+            println!("Deleted device '{name}'");
         }
         Commands::Ls => {
             let config = Config::load()?;
@@ -161,20 +167,24 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     ""
                 };
-                println!("  {} - {}{}", name, ip, default_marker);
+                println!("  {name} - {ip}{default_marker}");
             }
         }
         Commands::SetDefault { name } => {
             let mut config = Config::load()?;
             config.set_default(&name)?;
             config.save()?;
-            println!("Set '{}' as the default device", name);
+            println!("Set '{name}' as the default device");
         }
         Commands::On { device } => {
             set_device_power(device.as_deref(), true)?;
         }
         Commands::Off { device } => {
             set_device_power(device.as_deref(), false)?;
+        }
+        #[cfg(feature = "mcp")]
+        Commands::Mcp => {
+            mcp::handle_mcp_command()?;
         }
         Commands::Brightness { value, device } => {
             set_device_brightness(device.as_deref(), value)?;
