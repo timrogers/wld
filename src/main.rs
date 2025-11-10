@@ -138,7 +138,7 @@ pub fn set_device_power(
     Ok(())
 }
 
-pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn format_device_status(device: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
 
@@ -148,9 +148,11 @@ pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error:
     // Get current state
     wled.get_state_from_wled()?;
 
+    let mut output = String::new();
+
     // Display device identifier
     let device_name = device.unwrap_or(&ip);
-    println!("Device: {device_name} ({ip})");
+    output.push_str(&format!("Device: {device_name} ({ip})\n"));
 
     // Display state information
     if let Some(state) = &wled.state {
@@ -160,12 +162,12 @@ pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error:
         } else {
             "Off"
         };
-        println!("Power: {power_status}");
+        output.push_str(&format!("Power: {power_status}\n"));
 
         // Brightness
         if let Some(bri) = state.bri {
             let percentage = (bri as f32 / 255.0 * 100.0).round() as u8;
-            println!("Brightness: {bri}/255 ({percentage}%)");
+            output.push_str(&format!("Brightness: {bri}/255 ({percentage}%)\n"));
         }
 
         // Segment information (color, effects)
@@ -175,24 +177,30 @@ pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error:
                 if let Some(colors) = &first_seg.col {
                     if let Some(primary_color) = colors.first() {
                         if primary_color.len() >= 3 {
-                            println!(
-                                "Primary Color: RGB({}, {}, {})",
+                            output.push_str(&format!(
+                                "Primary Color: RGB({}, {}, {})\n",
                                 primary_color[0], primary_color[1], primary_color[2]
-                            );
+                            ));
                         }
                     }
                 }
 
                 // Effect
                 if let Some(effect_id) = first_seg.fx {
-                    println!("Effect ID: {effect_id}");
+                    output.push_str(&format!("Effect ID: {effect_id}\n"));
                 }
             }
         }
     } else {
-        println!("No state information available");
+        output.push_str("No state information available\n");
     }
 
+    Ok(output)
+}
+
+pub fn get_device_status(device: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let status = format_device_status(device)?;
+    print!("{}", status);
     Ok(())
 }
 

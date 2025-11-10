@@ -7,7 +7,7 @@ use rmcp::{
 };
 
 use crate::config::Config;
-use crate::{set_device_brightness, set_device_power};
+use crate::{format_device_status, set_device_brightness, set_device_power};
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct EmptyParams {}
@@ -132,6 +132,27 @@ impl WledMcpServer {
             Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(format!(
                 "Device brightness set to {value} successfully"
             ))])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {e}"
+            ))])),
+        }
+    }
+
+    #[tool(
+        description = "Get WLED device status (power, brightness, color, effect). By default, the default device is used, but you can optionally specify a device name or IP address."
+    )]
+    async fn wled_status(
+        &self,
+        Parameters(params): Parameters<WledDeviceParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let device = params.device.clone();
+        match tokio::task::spawn_blocking(move || {
+            format_device_status(device.as_deref()).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(status)) => Ok(CallToolResult::success(vec![Content::text(status)])),
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "Task error: {e}"
