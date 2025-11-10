@@ -51,13 +51,12 @@ impl WledMcpServer {
                     } else {
                         ""
                     };
-                    output.push_str(&format!("  {} - {}{}\n", name, ip, default_marker));
+                    output.push_str(&format!("  {name} - {ip}{default_marker}\n"));
                 }
                 Ok(CallToolResult::success(vec![Content::text(output)]))
             }
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
-                "Failed to load configuration: {}",
-                e
+                "Failed to load configuration: {e}"
             ))])),
         }
     }
@@ -80,8 +79,7 @@ impl WledMcpServer {
             )])),
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
-                "Task error: {}",
-                e
+                "Task error: {e}"
             ))])),
         }
     }
@@ -104,8 +102,7 @@ impl WledMcpServer {
             )])),
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
-                "Task error: {}",
-                e
+                "Task error: {e}"
             ))])),
         }
     }

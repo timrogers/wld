@@ -59,7 +59,7 @@ impl Config {
 
     pub fn remove_device(&mut self, name: &str) -> Result<(), String> {
         if !self.devices.contains_key(name) {
-            return Err(format!("Device '{}' not found", name));
+            return Err(format!("Device '{name}' not found"));
         }
 
         self.devices.remove(name);
@@ -79,7 +79,7 @@ impl Config {
 
     pub fn set_default(&mut self, name: &str) -> Result<(), String> {
         if !self.devices.contains_key(name) {
-            return Err(format!("Device '{}' not found", name));
+            return Err(format!("Device '{name}' not found"));
         }
 
         self.default_device = Some(name.to_string());

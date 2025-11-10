@@ -56,7 +56,7 @@ enum Commands {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }
@@ -68,7 +68,7 @@ pub fn set_device_power(
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
 
-    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
     let mut wled = Wled::try_from_url(&url)?;
 
     // Get current state
@@ -88,7 +88,7 @@ pub fn set_device_power(
     wled.flush_state()?;
 
     let action = if power_state { "on" } else { "off" };
-    println!("Turned {} device at {}", action, ip);
+    println!("Turned {action} device at {ip}");
 
     Ok(())
 }
@@ -101,17 +101,17 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let mut config = Config::load()?;
             config.add_device(name.clone(), ip.clone());
             config.save()?;
-            println!("Added device '{}' with IP {}", name, ip);
+            println!("Added device '{name}' with IP {ip}");
 
             if config.devices.len() == 1 {
-                println!("Set '{}' as the default device", name);
+                println!("Set '{name}' as the default device");
             }
         }
         Commands::Delete { name } => {
             let mut config = Config::load()?;
             config.remove_device(&name)?;
             config.save()?;
-            println!("Deleted device '{}'", name);
+            println!("Deleted device '{name}'");
         }
         Commands::Ls => {
             let config = Config::load()?;
@@ -128,14 +128,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     ""
                 };
-                println!("  {} - {}{}", name, ip, default_marker);
+                println!("  {name} - {ip}{default_marker}");
             }
         }
         Commands::SetDefault { name } => {
             let mut config = Config::load()?;
             config.set_default(&name)?;
             config.save()?;
-            println!("Set '{}' as the default device", name);
+            println!("Set '{name}' as the default device");
         }
         Commands::On { device } => {
             set_device_power(device.as_deref(), true)?;
