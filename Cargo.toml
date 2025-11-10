@@ -1,7 +1,14 @@
 [package]
 name = "wld"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+authors = ["Tim Rogers <timrogers@github.com>"]
+description = "Control WLED lights from the command line or your favorite MCP client"
+repository = "https://github.com/timrogers/wld"
+license = "MIT"
+readme = "README.md"
+categories = ["hardware-support", "command-line-utilities"]
+keywords = ["wled"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
