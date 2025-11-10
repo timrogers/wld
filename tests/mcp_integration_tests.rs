@@ -308,7 +308,9 @@ fn test_mcp_tools_have_valid_schemas() {
         );
 
         // Verify inputSchema has type: "object"
-        let schema_type = input_schema["type"].as_str().unwrap_or_else(|| panic!("Tool '{tool_name}' inputSchema should have 'type' field"));
+        let schema_type = input_schema["type"]
+            .as_str()
+            .unwrap_or_else(|| panic!("Tool '{tool_name}' inputSchema should have 'type' field"));
 
         assert_eq!(
             schema_type, "object",
