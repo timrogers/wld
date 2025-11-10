@@ -46,6 +46,7 @@ jobs:
         run: cargo build --release --target=${{ matrix.job.target }}
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
+        shell: bash
         run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - name: Rename Windows binary to use structured filename
         run: |
@@ -99,6 +100,7 @@ jobs:
     steps:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
+        shell: bash
         run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - name: Download macOS amd64 binary
         uses: actions/download-artifact@v5
@@ -170,6 +172,7 @@ jobs:
     steps:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
+        shell: bash
         run: echo "value=$(echo "${{ github.ref_name }}" | tr '/' '_')" >> $GITHUB_OUTPUT
       - uses: actions/download-artifact@v5
         with:
