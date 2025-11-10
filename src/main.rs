@@ -46,6 +46,14 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Set device brightness (0-255)
+    Brightness {
+        /// Brightness level (0-255)
+        value: u8,
+        /// Device name or IP (uses default if not specified)
+        #[arg(short, long)]
+        device: Option<String>,
+    },
 }
 
 fn main() {
@@ -83,6 +91,37 @@ fn set_device_power(
 
     let action = if power_state { "on" } else { "off" };
     println!("Turned {} device at {}", action, ip);
+
+    Ok(())
+}
+
+fn set_device_brightness(
+    device: Option<&str>,
+    brightness: u8,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+
+    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
+    let mut wled = Wled::try_from_url(&url)?;
+
+    // Get current state
+    wled.get_state_from_wled()?;
+
+    // Update state
+    if let Some(state) = &mut wled.state {
+        state.bri = Some(brightness);
+    } else {
+        wled.state = Some(State {
+            bri: Some(brightness),
+            ..Default::default()
+        });
+    }
+
+    // Send updated state
+    wled.flush_state()?;
+
+    println!("Set brightness to {} for device at {}", brightness, ip);
 
     Ok(())
 }
@@ -136,6 +175,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Off { device } => {
             set_device_power(device.as_deref(), false)?;
+        }
+        Commands::Brightness { value, device } => {
+            set_device_brightness(device.as_deref(), value)?;
         }
     }
 
