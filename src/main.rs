@@ -108,7 +108,7 @@ fn set_device_brightness(
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
 
-    let url = reqwest::Url::parse(&format!("http://{}", ip))?;
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
     let mut wled = Wled::try_from_url(&url)?;
 
     // Get current state
@@ -127,7 +127,7 @@ fn set_device_brightness(
     // Send updated state
     wled.flush_state()?;
 
-    println!("Set brightness to {} for device at {}", brightness, ip);
+    println!("Set brightness to {brightness} for device at {ip}");
 
     Ok(())
 }
