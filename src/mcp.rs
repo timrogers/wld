@@ -7,13 +7,21 @@ use rmcp::{
 };
 
 use crate::config::Config;
-use crate::set_device_power;
+use crate::{set_device_brightness, set_device_power};
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct EmptyParams {}
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct WledDeviceParams {
+    /// Device name or IP address (optional - if not specified, the default device is used)
+    pub device: Option<String>,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct WledBrightnessParams {
+    /// Brightness level (0-255)
+    pub value: u8,
     /// Device name or IP address (optional - if not specified, the default device is used)
     pub device: Option<String>,
 }
@@ -100,6 +108,30 @@ impl WledMcpServer {
             Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(
                 "Device turned off successfully",
             )])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {e}"
+            ))])),
+        }
+    }
+
+    #[tool(
+        description = "Set WLED device brightness (0-255). By default, the default device is used, but you can optionally specify a device name or IP address."
+    )]
+    async fn wled_brightness(
+        &self,
+        Parameters(params): Parameters<WledBrightnessParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let device = params.device.clone();
+        let value = params.value;
+        match tokio::task::spawn_blocking(move || {
+            set_device_brightness(device.as_deref(), value).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(format!(
+                "Device brightness set to {value} successfully"
+            ))])),
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "Task error: {e}"

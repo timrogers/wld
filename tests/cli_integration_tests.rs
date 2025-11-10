@@ -24,7 +24,7 @@ fn setup_temp_home() -> PathBuf {
         .unwrap()
         .as_nanos();
     let counter = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let unique_name = format!("wld_test_home_{}_{}", timestamp, counter);
+    let unique_name = format!("wld_test_home_{timestamp}_{counter}");
 
     let temp_dir = env::temp_dir();
     let temp_home = temp_dir.join(unique_name);

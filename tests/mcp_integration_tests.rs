@@ -25,7 +25,7 @@ fn setup_temp_home() -> PathBuf {
         .unwrap()
         .as_nanos();
     let counter = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let unique_name = format!("wld_mcp_test_home_{}_{}", timestamp, counter);
+    let unique_name = format!("wld_mcp_test_home_{timestamp}_{counter}");
 
     let temp_dir = env::temp_dir();
     let temp_home = temp_dir.join(unique_name);
@@ -47,7 +47,7 @@ fn cleanup_temp_home(path: &PathBuf) {
 fn add_device_to_config(temp_home: &PathBuf, name: &str, ip: &str) {
     let binary_path = get_binary_path();
     Command::new(binary_path)
-        .args(&["add", name, ip])
+        .args(["add", name, ip])
         .env("HOME", temp_home)
         .output()
         .expect("Failed to add device");
@@ -70,19 +70,19 @@ export HOME={}
         temp_home.display(),
         requests
             .iter()
-            .map(|r| format!("  echo '{}'", r))
+            .map(|r| format!("  echo '{r}'"))
             .collect::<Vec<_>>()
             .join("\n"),
         binary_path.display()
     );
 
     let script_path = temp_home.join("test_script.sh");
-    fs::write(&script_path, script).map_err(|e| format!("Failed to write script: {}", e))?;
+    fs::write(&script_path, script).map_err(|e| format!("Failed to write script: {e}"))?;
 
     let output = Command::new("bash")
         .arg(&script_path)
         .output()
-        .map_err(|e| format!("Failed to run script: {}", e))?;
+        .map_err(|e| format!("Failed to run script: {e}"))?;
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
@@ -210,8 +210,7 @@ fn test_mcp_wled_on_no_default() {
     // Should get error about no default device
     assert!(
         output.contains("No device") || output.contains("isError"),
-        "Response should indicate missing device error: {}",
-        output
+        "Response should indicate missing device error: {output}"
     );
 }
 
@@ -238,8 +237,7 @@ fn test_mcp_wled_on_with_device_parameter() {
     // but the MCP call should still succeed in accepting the parameter
     assert!(
         output.contains("content") || output.contains("isError"),
-        "Response should contain result: {}",
-        output
+        "Response should contain result: {output}"
     );
 }
 
@@ -263,8 +261,7 @@ fn test_mcp_wled_off_with_ip_address() {
     // but the MCP call should still succeed in accepting the IP parameter
     assert!(
         output.contains("content") || output.contains("isError"),
-        "Response should contain result: {}",
-        output
+        "Response should contain result: {output}"
     );
 }
 
@@ -307,27 +304,21 @@ fn test_mcp_tools_have_valid_schemas() {
         // Verify inputSchema exists and is an object
         assert!(
             input_schema.is_object(),
-            "Tool '{}' inputSchema should be an object",
-            tool_name
+            "Tool '{tool_name}' inputSchema should be an object"
         );
 
         // Verify inputSchema has type: "object"
-        let schema_type = input_schema["type"].as_str().expect(&format!(
-            "Tool '{}' inputSchema should have 'type' field",
-            tool_name
-        ));
+        let schema_type = input_schema["type"].as_str().unwrap_or_else(|| panic!("Tool '{tool_name}' inputSchema should have 'type' field"));
 
         assert_eq!(
             schema_type, "object",
-            "Tool '{}' inputSchema type should be 'object', got '{}'",
-            tool_name, schema_type
+            "Tool '{tool_name}' inputSchema type should be 'object', got '{schema_type}'"
         );
 
         // Verify it has a $schema field
         assert!(
             input_schema["$schema"].is_string(),
-            "Tool '{}' inputSchema should have $schema field",
-            tool_name
+            "Tool '{tool_name}' inputSchema should have $schema field"
         );
     }
 
@@ -430,55 +421,48 @@ fn test_wled_device_params_schema_structure() {
         let tool = tools
             .iter()
             .find(|t| t["name"] == *tool_name)
-            .expect(&format!("Should have {} tool", tool_name));
+            .unwrap_or_else(|| panic!("Should have {tool_name} tool"));
 
         let input_schema = &tool["inputSchema"];
 
         assert_eq!(
             input_schema["type"].as_str().unwrap(),
             "object",
-            "{} should have object type schema",
-            tool_name
+            "{tool_name} should have object type schema"
         );
 
         assert_eq!(
             input_schema["title"].as_str().unwrap(),
             "WledDeviceParams",
-            "{} should use WledDeviceParams schema",
-            tool_name
+            "{tool_name} should use WledDeviceParams schema"
         );
 
         // Verify properties object exists
         let properties = input_schema["properties"]
             .as_object()
-            .expect(&format!("{} should have properties", tool_name));
+            .unwrap_or_else(|| panic!("{tool_name} should have properties"));
 
         // Verify device property
         assert!(
             properties.contains_key("device"),
-            "{} should have device property",
-            tool_name
+            "{tool_name} should have device property"
         );
 
         let device_prop = &properties["device"];
         assert_eq!(
             device_prop["type"].as_str().unwrap(),
             "string",
-            "{} device property should be string type",
-            tool_name
+            "{tool_name} device property should be string type"
         );
 
-        assert_eq!(
+        assert!(
             device_prop["nullable"].as_bool().unwrap(),
-            true,
-            "{} device property should be nullable",
-            tool_name
+            "{tool_name} device property should be nullable"
         );
 
         assert!(
             device_prop["description"].is_string(),
-            "{} device property should have description",
-            tool_name
+            "{tool_name} device property should have description"
         );
     }
 }

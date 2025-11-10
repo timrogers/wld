@@ -118,3 +118,4 @@ The following tools are available:
 - `wled_devices`: List saved WLED devices from configuration, including their names, IP addresses, and which one is set as default
 - `wled_on`: Turn WLED device on. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_off`: Turn WLED device off. By default, the default device is used, but you can optionally specify a device name or IP address.
+- `wled_brightness`: Set WLED device brightness (0-255). By default, the default device is used, but you can optionally specify a device name or IP address.
