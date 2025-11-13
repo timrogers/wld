@@ -7,7 +7,7 @@ use rmcp::{
 };
 
 use crate::config::Config;
-use crate::{set_device_brightness, set_device_power};
+use crate::{get_device_status, set_device_brightness, set_device_power, DeviceStatus};
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct EmptyParams {}
@@ -132,6 +132,60 @@ impl WledMcpServer {
             Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(format!(
                 "Device brightness set to {value} successfully"
             ))])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {e}"
+            ))])),
+        }
+    }
+
+    #[tool(description = "Check status of all configured WLED devices")]
+    async fn wled_status(
+        &self,
+        Parameters(_params): Parameters<EmptyParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match tokio::task::spawn_blocking(|| -> Result<String, String> {
+            let config = Config::load().map_err(|e| e.to_string())?;
+
+            if config.devices.is_empty() {
+                return Ok("No devices saved".to_string());
+            }
+
+            let mut output = String::from("Checking status of all devices:\n\n");
+            let mut all_reachable = true;
+
+            for (name, ip) in &config.devices {
+                let default_marker = if config.default_device.as_ref() == Some(name) {
+                    " (default)"
+                } else {
+                    ""
+                };
+
+                output.push_str(&format!("  {name} ({ip}){default_marker}: "));
+
+                match get_device_status(ip) {
+                    DeviceStatus::On => {
+                        output.push_str("ON\n");
+                    }
+                    DeviceStatus::Off => {
+                        output.push_str("OFF\n");
+                    }
+                    DeviceStatus::Unreachable => {
+                        output.push_str("UNREACHABLE\n");
+                        all_reachable = false;
+                    }
+                }
+            }
+
+            if !all_reachable {
+                output.push_str("\nWarning: Some devices are unreachable");
+            }
+
+            Ok(output)
+        })
+        .await
+        {
+            Ok(Ok(output)) => Ok(CallToolResult::success(vec![Content::text(output)])),
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "Task error: {e}"

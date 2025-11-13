@@ -84,6 +84,11 @@ The `wld` CLI provides the following commands:
   wld brightness 0 -d 192.168.1.100  # Set a device to minimum brightness
   ```
 
+- `wld status`: Check the status of all configured devices. Shows whether each device is ON, OFF, or UNREACHABLE.
+  ```bash
+  wld status                  # Check status of all saved devices
+  ```
+
 ### From a Model Context Protocol (MCP) client
 
 Running the `wld mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your WLED devices from AI applications and agents.
@@ -119,3 +124,4 @@ The following tools are available:
 - `wled_on`: Turn WLED device on. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_off`: Turn WLED device off. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_brightness`: Set WLED device brightness (0-255). By default, the default device is used, but you can optionally specify a device name or IP address.
+- `wled_status`: Check status of all configured WLED devices. Shows whether each device is ON, OFF, or UNREACHABLE.

@@ -60,6 +60,8 @@ enum Commands {
         #[arg(short, long)]
         device: Option<String>,
     },
+    /// Check status of all configured devices
+    Status,
 }
 
 fn main() {
@@ -132,6 +134,44 @@ pub fn set_device_power(
     Ok(())
 }
 
+#[derive(Debug)]
+pub enum DeviceStatus {
+    On,
+    Off,
+    Unreachable,
+}
+
+pub fn get_device_status(ip: &str) -> DeviceStatus {
+    let url = match reqwest::Url::parse(&format!("http://{ip}")) {
+        Ok(u) => u,
+        Err(_) => return DeviceStatus::Unreachable,
+    };
+
+    let mut wled = match Wled::try_from_url(&url) {
+        Ok(w) => w,
+        Err(_) => return DeviceStatus::Unreachable,
+    };
+
+    // Try to get current state from device
+    match wled.get_state_from_wled() {
+        Ok(_) => {
+            // Check if device is on or off
+            if let Some(state) = &wled.state {
+                if let Some(on) = state.on {
+                    if on {
+                        return DeviceStatus::On;
+                    } else {
+                        return DeviceStatus::Off;
+                    }
+                }
+            }
+            // If we can reach the device but can't determine state, assume it's on
+            DeviceStatus::On
+        }
+        Err(_) => DeviceStatus::Unreachable,
+    }
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
@@ -188,6 +228,45 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Brightness { value, device } => {
             set_device_brightness(device.as_deref(), value)?;
+        }
+        Commands::Status => {
+            let config = Config::load()?;
+
+            if config.devices.is_empty() {
+                println!("No devices saved");
+                return Ok(());
+            }
+
+            println!("Checking status of all devices...\n");
+
+            let mut all_reachable = true;
+
+            for (name, ip) in &config.devices {
+                let default_marker = if config.default_device.as_ref() == Some(name) {
+                    " (default)"
+                } else {
+                    ""
+                };
+
+                print!("  {name} ({ip}){default_marker}: ");
+
+                match get_device_status(ip) {
+                    DeviceStatus::On => {
+                        println!("ON");
+                    }
+                    DeviceStatus::Off => {
+                        println!("OFF");
+                    }
+                    DeviceStatus::Unreachable => {
+                        println!("UNREACHABLE");
+                        all_reachable = false;
+                    }
+                }
+            }
+
+            if !all_reachable {
+                std::process::exit(1);
+            }
         }
     }
 
