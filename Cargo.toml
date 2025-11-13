@@ -1,6 +1,6 @@
 [package]
 name = "wld"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 authors = ["Tim Rogers <timrogers@github.com>"]
 description = "Control WLED lights from the command line or your favorite MCP client"
