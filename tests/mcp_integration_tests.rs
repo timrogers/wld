@@ -551,4 +551,3 @@ fn test_mcp_tools_list_includes_status() {
         "Response should list wled_status tool"
     );
 }
-

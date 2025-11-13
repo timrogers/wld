@@ -328,7 +328,7 @@ fn test_status_command_with_devices() {
 
     // Run status command
     let output = run_command_with_temp_home(&["status"], &temp_home);
-    
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Checking status of all devices"));
     assert!(stdout.contains("device1"));
@@ -356,7 +356,7 @@ fn test_status_command_shows_default_marker() {
 
     // Run status command
     let output = run_command_with_temp_home(&["status"], &temp_home);
-    
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("device2 (192.168.1.101) (default)"));
 
