@@ -92,7 +92,7 @@ The repository uses pre-commit hooks (`.pre-commit-config.yaml`):
   - Uses `clap` with derive macros for CLI parsing
   - Commands: `add`, `delete`, `ls`, `set-default`, `on`, `off`, `brightness`
   - Main functions: `set_device_power()`, `set_device_brightness()`
-  
+
 - `config.rs` - Configuration management
   - `Config` struct: manages device list and default device
   - Stores config in `~/.wld.toml` (TOML format)
