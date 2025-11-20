@@ -362,3 +362,66 @@ fn test_status_command_shows_default_marker() {
 
     cleanup_temp_home(&temp_home);
 }
+
+#[test]
+fn test_brightness_percentage_valid_values() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test 0%
+    let output_0 = run_command_with_temp_home(&["brightness", "0", "--percentage"], &temp_home);
+    let stderr_0 = String::from_utf8_lossy(&output_0.stderr);
+    assert!(!stderr_0.contains("invalid value"));
+    assert!(!stderr_0.contains("Percentage must be"));
+
+    // Test 50%
+    let output_50 = run_command_with_temp_home(&["brightness", "50", "-p"], &temp_home);
+    let stderr_50 = String::from_utf8_lossy(&output_50.stderr);
+    assert!(!stderr_50.contains("invalid value"));
+    assert!(!stderr_50.contains("Percentage must be"));
+
+    // Test 100%
+    let output_100 = run_command_with_temp_home(&["brightness", "100", "--percentage"], &temp_home);
+    let stderr_100 = String::from_utf8_lossy(&output_100.stderr);
+    assert!(!stderr_100.contains("invalid value"));
+    assert!(!stderr_100.contains("Percentage must be"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_brightness_percentage_rejects_over_100() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test 101%
+    let output = run_command_with_temp_home(&["brightness", "101", "--percentage"], &temp_home);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Percentage must be between 0 and 100"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_brightness_percentage_with_specific_device() {
+    let temp_home = setup_temp_home();
+
+    // Add two devices
+    run_command_with_temp_home(&["add", "device1", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "device2", "192.168.1.101"], &temp_home);
+
+    // Try to set brightness percentage on specific device
+    let output =
+        run_command_with_temp_home(&["brightness", "75", "-p", "-d", "device2"], &temp_home);
+    // Should parse successfully (will fail on network, but that's expected)
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("error: invalid"));
+    assert!(!stderr.contains("Percentage must be"));
+
+    cleanup_temp_home(&temp_home);
+}

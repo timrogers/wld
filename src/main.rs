@@ -54,11 +54,14 @@ enum Commands {
     Mcp,
     /// Set device brightness (0-255)
     Brightness {
-        /// Brightness level (0-255)
+        /// Brightness level (0-255, or 0-100 if --percentage is used)
         value: u8,
         /// Device name or IP (uses default if not specified)
         #[arg(short, long)]
         device: Option<String>,
+        /// Interpret value as a percentage (0-100) instead of 0-255
+        #[arg(short, long)]
+        percentage: bool,
     },
     /// Check status of all configured devices
     Status,
@@ -226,8 +229,22 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Mcp => {
             mcp::handle_mcp_command()?;
         }
-        Commands::Brightness { value, device } => {
-            set_device_brightness(device.as_deref(), value)?;
+        Commands::Brightness {
+            value,
+            device,
+            percentage,
+        } => {
+            let brightness = if percentage {
+                // Validate percentage is 0-100
+                if value > 100 {
+                    return Err(format!("Percentage must be between 0 and 100, got {value}").into());
+                }
+                // Convert percentage to 0-255 range
+                ((value as u16 * 255) / 100) as u8
+            } else {
+                value
+            };
+            set_device_brightness(device.as_deref(), brightness)?;
         }
         Commands::Status => {
             let config = Config::load()?;
