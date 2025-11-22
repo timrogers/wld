@@ -11,7 +11,7 @@ With this tool, you can:
 - Save and manage multiple WLED devices by name
 - Set a default device for quick access
 - Turn your WLED device on and off from the terminal
-- Set the brightness level of your WLED device (0-255)
+- Set the brightness level of your WLED device (0-255 or 0-100%)
 - Control devices by saved name, or directly by IP address
 
 ## Installation
@@ -77,9 +77,10 @@ The `wld` CLI provides the following commands:
   wld off -d 192.168.1.100    # Turn off a device by IP address
   ```
 
-- `wld brightness <value>`: Set the brightness of your default device, or specify a device with `--device`/`-d`. Brightness value must be between 0 and 255.
+- `wld brightness <value>`: Set the brightness of your default device, or specify a device with `--device`/`-d`. Brightness value must be between 0 and 255, or 0 and 100 if `--percentage`/`-p` is used.
   ```bash
   wld brightness 128          # Set default device to half brightness
+  wld brightness 50 -p        # Set default device to 50% brightness
   wld brightness 255 -d desk-light  # Set a specific saved device to full brightness
   wld brightness 0 -d 192.168.1.100  # Set a device to minimum brightness
   ```
