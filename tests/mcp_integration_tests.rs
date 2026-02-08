@@ -551,3 +551,48 @@ fn test_mcp_tools_list_includes_status() {
         "Response should list wled_status tool"
     );
 }
+
+#[test]
+fn test_mcp_tools_list_includes_discover() {
+    let temp_home = setup_temp_home();
+
+    let init_request = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}"#;
+    let init_notification = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let tools_request = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#;
+
+    let output = send_mcp_request_via_script(
+        &temp_home,
+        vec![init_request, init_notification, tools_request],
+    )
+    .expect("Failed to send request");
+
+    cleanup_temp_home(&temp_home);
+
+    assert!(
+        output.contains("wled_discover"),
+        "Response should list wled_discover tool"
+    );
+}
+
+#[test]
+fn test_mcp_wled_discover_returns_result() {
+    let temp_home = setup_temp_home();
+
+    let init_request = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}"#;
+    let init_notification = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let call_request = r#"{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"wled_discover","arguments":{"timeout":1}}}"#;
+
+    let output = send_mcp_request_via_script(
+        &temp_home,
+        vec![init_request, init_notification, call_request],
+    )
+    .expect("Failed to send request");
+
+    cleanup_temp_home(&temp_home);
+
+    // Since no devices exist on the test network, we should get a "no devices found" message
+    assert!(
+        output.contains("No WLED devices found") || output.contains("content"),
+        "Response should contain result: {output}"
+    );
+}

@@ -13,6 +13,7 @@ With this tool, you can:
 - Turn your WLED device on and off from the terminal
 - Set the brightness level of your WLED device (0-255 or 0-100%)
 - Control devices by saved name, or directly by IP address
+- Discover WLED devices on the local network via mDNS
 
 ## Installation
 
@@ -90,6 +91,12 @@ The `wld` CLI provides the following commands:
   wld status                  # Check status of all saved devices
   ```
 
+- `wld discover`: Discover WLED devices on the local network using mDNS. Useful for finding devices before adding them.
+  ```bash
+  wld discover                # Scan for 5 seconds (default)
+  wld discover -t 10          # Scan for 10 seconds
+  ```
+
 ### From a Model Context Protocol (MCP) client
 
 Running the `wld mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your WLED devices from AI applications and agents.
@@ -126,3 +133,4 @@ The following tools are available:
 - `wled_off`: Turn WLED device off. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_brightness`: Set WLED device brightness (0-255). By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_status`: Check status of all configured WLED devices. Shows whether each device is ON, OFF, or UNREACHABLE.
+- `wled_discover`: Discover WLED devices on the local network using mDNS. Returns a list of discovered devices with their names and IP addresses. Optionally specify a timeout in seconds.

@@ -7,7 +7,9 @@ use rmcp::{
 };
 
 use crate::config::Config;
-use crate::{get_device_status, set_device_brightness, set_device_power, DeviceStatus};
+use crate::{
+    discover_devices, get_device_status, set_device_brightness, set_device_power, DeviceStatus,
+};
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct EmptyParams {}
@@ -24,6 +26,12 @@ pub struct WledBrightnessParams {
     pub value: u8,
     /// Device name or IP address (optional - if not specified, the default device is used)
     pub device: Option<String>,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct WledDiscoverParams {
+    /// How long to scan for devices in seconds (default: 5)
+    pub timeout: Option<u64>,
 }
 
 #[derive(Clone)]
@@ -186,6 +194,39 @@ impl WledMcpServer {
         .await
         {
             Ok(Ok(output)) => Ok(CallToolResult::success(vec![Content::text(output)])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {e}"
+            ))])),
+        }
+    }
+
+    #[tool(
+        description = "Discover WLED devices on the local network using mDNS. Returns a list of discovered devices with their names and IP addresses."
+    )]
+    async fn wled_discover(
+        &self,
+        Parameters(params): Parameters<WledDiscoverParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let timeout = params.timeout.unwrap_or(5);
+        match tokio::task::spawn_blocking(move || {
+            discover_devices(timeout).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(devices)) => {
+                if devices.is_empty() {
+                    Ok(CallToolResult::success(vec![Content::text(
+                        "No WLED devices found on the local network",
+                    )]))
+                } else {
+                    let mut output = format!("Found {} device(s):\n\n", devices.len());
+                    for device in &devices {
+                        output.push_str(&format!("  {} - {}\n", device.name, device.ip));
+                    }
+                    Ok(CallToolResult::success(vec![Content::text(output)]))
+                }
+            }
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "Task error: {e}"
