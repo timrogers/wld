@@ -12,6 +12,7 @@ With this tool, you can:
 - Set a default device for quick access
 - Turn your WLED device on and off from the terminal
 - Set the brightness level of your WLED device (0-255 or 0-100%)
+- Set the color of your WLED device using hex color codes
 - Control devices by saved name, or directly by IP address
 
 ## Installation
@@ -85,6 +86,13 @@ The `wld` CLI provides the following commands:
   wld brightness 0 -d 192.168.1.100  # Set a device to minimum brightness
   ```
 
+- `wld color <hex>`: Set the color of your default device using a hex color code, or specify a device with `--device`/`-d`. The `#` prefix is optional.
+  ```bash
+  wld color FF0000            # Set default device to red
+  wld color "#00FF00"         # Set default device to green (with # prefix)
+  wld color 0000FF -d desk-light  # Set a specific saved device to blue
+  ```
+
 - `wld status`: Check the status of all configured devices. Shows whether each device is ON, OFF, or UNREACHABLE.
   ```bash
   wld status                  # Check status of all saved devices
@@ -125,4 +133,5 @@ The following tools are available:
 - `wled_on`: Turn WLED device on. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_off`: Turn WLED device off. By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_brightness`: Set WLED device brightness (0-255). By default, the default device is used, but you can optionally specify a device name or IP address.
+- `wled_color`: Set WLED device color using a hex color code (e.g. FF0000 for red). By default, the default device is used, but you can optionally specify a device name or IP address.
 - `wled_status`: Check status of all configured WLED devices. Shows whether each device is ON, OFF, or UNREACHABLE.

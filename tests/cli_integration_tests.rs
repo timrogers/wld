@@ -425,3 +425,101 @@ fn test_brightness_percentage_with_specific_device() {
 
     cleanup_temp_home(&temp_home);
 }
+
+#[test]
+fn test_color_command_requires_value() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Try to run color without a value - should fail
+    let output = run_command_with_temp_home(&["color"], &temp_home);
+    assert!(!output.status.success());
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_color_command_accepts_valid_hex() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test valid hex color (will fail on network, but we're testing command parsing)
+    let output = run_command_with_temp_home(&["color", "FF0000"], &temp_home);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Should not contain argument parsing errors
+    assert!(!stderr.contains("invalid value"));
+    assert!(!stderr.contains("error: invalid"));
+    // Error should be a connection error, not a color parsing error
+    assert!(!stderr.contains("Invalid hex color"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_color_command_accepts_hex_with_hash() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test valid hex color with # prefix
+    let output = run_command_with_temp_home(&["color", "#00FF00"], &temp_home);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("Invalid hex color"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_color_command_rejects_invalid_hex() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test invalid hex color (too short)
+    let output = run_command_with_temp_home(&["color", "FF00"], &temp_home);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Invalid hex color"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_color_command_rejects_non_hex_characters() {
+    let temp_home = setup_temp_home();
+
+    // Add a device
+    run_command_with_temp_home(&["add", "test_device", "192.168.1.100"], &temp_home);
+
+    // Test invalid hex color (non-hex characters)
+    let output = run_command_with_temp_home(&["color", "GGHHII"], &temp_home);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Invalid hex color"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_color_command_with_specific_device() {
+    let temp_home = setup_temp_home();
+
+    // Add two devices
+    run_command_with_temp_home(&["add", "device1", "192.168.1.100"], &temp_home);
+    run_command_with_temp_home(&["add", "device2", "192.168.1.101"], &temp_home);
+
+    // Try to set color on specific device
+    let output = run_command_with_temp_home(&["color", "0000FF", "-d", "device2"], &temp_home);
+    // Should parse successfully (will fail on network, but that's expected)
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("error: invalid"));
+    assert!(!stderr.contains("Invalid hex color"));
+
+    cleanup_temp_home(&temp_home);
+}

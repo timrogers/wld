@@ -7,7 +7,9 @@ use rmcp::{
 };
 
 use crate::config::Config;
-use crate::{get_device_status, set_device_brightness, set_device_power, DeviceStatus};
+use crate::{
+    get_device_status, set_device_brightness, set_device_color, set_device_power, DeviceStatus,
+};
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct EmptyParams {}
@@ -22,6 +24,14 @@ pub struct WledDeviceParams {
 pub struct WledBrightnessParams {
     /// Brightness level (0-255)
     pub value: u8,
+    /// Device name or IP address (optional - if not specified, the default device is used)
+    pub device: Option<String>,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct WledColorParams {
+    /// Hex color code (e.g. "FF0000" for red, "00FF00" for green). The "#" prefix is optional.
+    pub hex: String,
     /// Device name or IP address (optional - if not specified, the default device is used)
     pub device: Option<String>,
 }
@@ -132,6 +142,37 @@ impl WledMcpServer {
             Ok(Ok(())) => Ok(CallToolResult::success(vec![Content::text(format!(
                 "Device brightness set to {value} successfully"
             ))])),
+            Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
+                "Task error: {e}"
+            ))])),
+        }
+    }
+
+    #[tool(
+        description = "Set WLED device color using a hex color code (e.g. FF0000 for red, 00FF00 for green, 0000FF for blue). By default, the default device is used, but you can optionally specify a device name or IP address."
+    )]
+    async fn wled_color(
+        &self,
+        Parameters(params): Parameters<WledColorParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let device = params.device.clone();
+        let hex = params.hex.clone();
+        match tokio::task::spawn_blocking(move || {
+            set_device_color(device.as_deref(), &hex).map_err(|e| e.to_string())
+        })
+        .await
+        {
+            Ok(Ok(())) => {
+                let hex_display = params
+                    .hex
+                    .strip_prefix('#')
+                    .unwrap_or(&params.hex)
+                    .to_uppercase();
+                Ok(CallToolResult::success(vec![Content::text(format!(
+                    "Device color set to #{hex_display} successfully"
+                ))]))
+            }
             Ok(Err(e)) => Ok(CallToolResult::error(vec![Content::text(e)])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(format!(
                 "Task error: {e}"

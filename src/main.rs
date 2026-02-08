@@ -5,7 +5,7 @@ mod mcp;
 
 use clap::{Parser, Subcommand};
 use config::Config;
-use wled_json_api_library::structures::state::State;
+use wled_json_api_library::structures::state::{Seg, State};
 use wled_json_api_library::wled::Wled;
 
 #[derive(Parser)]
@@ -63,6 +63,14 @@ enum Commands {
         #[arg(short, long)]
         percentage: bool,
     },
+    /// Set device color using a hex color code (e.g. FF0000 for red)
+    Color {
+        /// Hex color code (e.g. "FF0000" for red, "00FF00" for green). The "#" prefix is optional.
+        hex: String,
+        /// Device name or IP (uses default if not specified)
+        #[arg(short, long)]
+        device: Option<String>,
+    },
     /// Check status of all configured devices
     Status,
 }
@@ -101,6 +109,61 @@ pub fn set_device_brightness(
     wled.flush_state()?;
 
     println!("Set brightness to {brightness} for device at {ip}");
+
+    Ok(())
+}
+
+pub fn parse_hex_color(hex: &str) -> Result<(u8, u8, u8), String> {
+    let hex = hex.strip_prefix('#').unwrap_or(hex);
+
+    if hex.len() != 6 {
+        return Err(format!(
+            "Invalid hex color '{hex}'. Expected 6 hex characters (e.g. FF0000 for red)."
+        ));
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16)
+        .map_err(|_| format!("Invalid hex color '{hex}'. Contains non-hex characters."))?;
+    let g = u8::from_str_radix(&hex[2..4], 16)
+        .map_err(|_| format!("Invalid hex color '{hex}'. Contains non-hex characters."))?;
+    let b = u8::from_str_radix(&hex[4..6], 16)
+        .map_err(|_| format!("Invalid hex color '{hex}'. Contains non-hex characters."))?;
+
+    Ok((r, g, b))
+}
+
+pub fn set_device_color(device: Option<&str>, hex: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let hex = hex.strip_prefix('#').unwrap_or(hex);
+    let (r, g, b) = parse_hex_color(hex)?;
+    let config = Config::load()?;
+    let ip = config.get_device_ip(device)?;
+
+    let url = reqwest::Url::parse(&format!("http://{ip}"))?;
+    let mut wled = Wled::try_from_url(&url)?;
+
+    // Get current state
+    wled.get_state_from_wled()?;
+
+    // Set the color on the first segment
+    let seg = Seg {
+        id: Some(0),
+        col: Some(vec![vec![r, g, b]]),
+        ..Default::default()
+    };
+
+    if let Some(state) = &mut wled.state {
+        state.seg = Some(vec![seg]);
+    } else {
+        wled.state = Some(State {
+            seg: Some(vec![seg]),
+            ..Default::default()
+        });
+    }
+
+    // Send updated state
+    wled.flush_state()?;
+
+    println!("Set color to #{} for device at {ip}", hex.to_uppercase());
 
     Ok(())
 }
@@ -245,6 +308,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 value
             };
             set_device_brightness(device.as_deref(), brightness)?;
+        }
+        Commands::Color { hex, device } => {
+            set_device_color(device.as_deref(), &hex)?;
         }
         Commands::Status => {
             let config = Config::load()?;
