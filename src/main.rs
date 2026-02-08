@@ -133,6 +133,7 @@ pub fn parse_hex_color(hex: &str) -> Result<(u8, u8, u8), String> {
 }
 
 pub fn set_device_color(device: Option<&str>, hex: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let hex = hex.strip_prefix('#').unwrap_or(hex);
     let (r, g, b) = parse_hex_color(hex)?;
     let config = Config::load()?;
     let ip = config.get_device_ip(device)?;
@@ -162,10 +163,7 @@ pub fn set_device_color(device: Option<&str>, hex: &str) -> Result<(), Box<dyn s
     // Send updated state
     wled.flush_state()?;
 
-    println!(
-        "Set color to #{hex} for device at {ip}",
-        hex = hex.strip_prefix('#').unwrap_or(hex).to_uppercase()
-    );
+    println!("Set color to #{} for device at {ip}", hex.to_uppercase());
 
     Ok(())
 }
