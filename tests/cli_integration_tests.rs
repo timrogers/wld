@@ -441,7 +441,7 @@ fn test_discover_command_runs() {
 }
 
 #[test]
-fn test_discover_command_default_timeout() {
+fn test_discover_command_short_flag() {
     let temp_home = setup_temp_home();
 
     // Run discover with a short timeout via -t flag

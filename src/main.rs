@@ -206,9 +206,10 @@ pub fn discover_devices(
 
         match receiver.recv_timeout(remaining) {
             Ok(ServiceEvent::ServiceResolved(info)) => {
-                let name = info
-                    .get_fullname()
-                    .trim_end_matches("._wled._tcp.local.")
+                let fullname = info.get_fullname();
+                let name = fullname
+                    .strip_suffix("._wled._tcp.local.")
+                    .unwrap_or(fullname)
                     .to_string();
                 for addr in info.get_addresses() {
                     let ip = addr.to_string();
