@@ -5,6 +5,7 @@ mod mcp;
 
 use clap::{Parser, Subcommand};
 use config::Config;
+use mdns_sd::{ServiceDaemon, ServiceEvent};
 use wled_json_api_library::structures::state::State;
 use wled_json_api_library::wled::Wled;
 
@@ -65,6 +66,12 @@ enum Commands {
     },
     /// Check status of all configured devices
     Status,
+    /// Discover WLED devices on the local network using mDNS
+    Discover {
+        /// How long to scan for devices in seconds
+        #[arg(short, long, default_value = "5")]
+        timeout: u64,
+    },
 }
 
 fn main() {
@@ -175,6 +182,53 @@ pub fn get_device_status(ip: &str) -> DeviceStatus {
     }
 }
 
+#[derive(Debug)]
+pub struct DiscoveredDevice {
+    pub name: String,
+    pub ip: String,
+}
+
+pub fn discover_devices(
+    timeout_secs: u64,
+) -> Result<Vec<DiscoveredDevice>, Box<dyn std::error::Error>> {
+    let mdns = ServiceDaemon::new()?;
+    let service_type = "_wled._tcp.local.";
+    let receiver = mdns.browse(service_type)?;
+
+    let mut devices: Vec<DiscoveredDevice> = Vec::new();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
+
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+
+        match receiver.recv_timeout(remaining) {
+            Ok(ServiceEvent::ServiceResolved(info)) => {
+                let name = info
+                    .get_fullname()
+                    .trim_end_matches("._wled._tcp.local.")
+                    .to_string();
+                for addr in info.get_addresses() {
+                    let ip = addr.to_string();
+                    if !devices.iter().any(|d| d.ip == ip) {
+                        devices.push(DiscoveredDevice {
+                            name: name.clone(),
+                            ip,
+                        });
+                    }
+                }
+            }
+            Ok(_) => {}
+            Err(_) => break,
+        }
+    }
+
+    let _ = mdns.shutdown();
+    Ok(devices)
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
@@ -283,6 +337,19 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
             if !all_reachable {
                 std::process::exit(1);
+            }
+        }
+        Commands::Discover { timeout } => {
+            println!("Scanning for WLED devices on the local network...\n");
+            let devices = discover_devices(timeout)?;
+
+            if devices.is_empty() {
+                println!("No WLED devices found");
+            } else {
+                println!("Found {} device(s):\n", devices.len());
+                for device in &devices {
+                    println!("  {} - {}", device.name, device.ip);
+                }
             }
         }
     }

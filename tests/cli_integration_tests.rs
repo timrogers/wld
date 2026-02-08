@@ -425,3 +425,31 @@ fn test_brightness_percentage_with_specific_device() {
 
     cleanup_temp_home(&temp_home);
 }
+
+#[test]
+fn test_discover_command_runs() {
+    let temp_home = setup_temp_home();
+
+    // Run discover with a short timeout
+    let output = run_command_with_temp_home(&["discover", "--timeout", "1"], &temp_home);
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Scanning for WLED devices on the local network"));
+
+    cleanup_temp_home(&temp_home);
+}
+
+#[test]
+fn test_discover_command_default_timeout() {
+    let temp_home = setup_temp_home();
+
+    // Run discover with a short timeout via -t flag
+    let output = run_command_with_temp_home(&["discover", "-t", "1"], &temp_home);
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Scanning for WLED devices on the local network"));
+
+    cleanup_temp_home(&temp_home);
+}
